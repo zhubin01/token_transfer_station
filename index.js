@@ -27,6 +27,12 @@ const APP_CONFIG = {
 // 多套Token独立缓存
 const tokenCache = {};
 
+// 计数统计（日志用）
+const stats = {
+  fromCache: 0,   // 从缓存拿token次数
+  fromApi: 0      // 从飞书接口拿token次数
+};
+
 // 核心接口：支持多套飞书获取token
 app.get("/api/token", async (req, res) => {
   try {
@@ -42,10 +48,13 @@ app.get("/api/token", async (req, res) => {
 
     // 2. 缓存有效直接返回
     if (tokenCache[cacheKey] && now < tokenCache[`expire_${appKey}`]) {
+      stats.fromCache++;
+      console.log(`[${new Date().toLocaleString()}] [${appKey}] 从缓存返回Token | 缓存计数: ${stats.fromCache} | 接口计数: ${stats.fromApi}`);
       return res.json({ code: 0, token: tokenCache[cacheKey], expire_time: tokenCache[`expire_${appKey}`] });
     }
 
     // 3. 请求飞书获取新token
+    stats.fromApi++;
     const resp = await fetch("https://open.feishu.cn/open-apis/auth/v3/tenant_access_token/internal", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -57,7 +66,7 @@ app.get("/api/token", async (req, res) => {
     tokenCache[cacheKey] = data.tenant_access_token;
     const expire_time = now + 5400 * 1000;
     tokenCache[`expire_${appKey}`] = expire_time;
-
+    console.log(`[${new Date().toLocaleString()}] [${appKey}] 从飞书接口获取Token | 缓存计数: ${stats.fromCache} | 接口计数: ${stats.fromApi}`);
     res.json({ code: 0, token: data.tenant_access_token, expire_time: expire_time});
   } catch (err) {
     res.json({ code: -1, msg: "获取失败", error: err.message });
