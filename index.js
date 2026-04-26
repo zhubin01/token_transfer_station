@@ -42,7 +42,7 @@ app.get("/api/token", async (req, res) => {
 
     // 2. 缓存有效直接返回
     if (tokenCache[cacheKey] && now < tokenCache[`expire_${appKey}`]) {
-      return res.json({ code: 0, token: tokenCache[cacheKey] });
+      return res.json({ code: 0, token: tokenCache[cacheKey], expire_time: tokenCache[`expire_${appKey}`] });
     }
 
     // 3. 请求飞书获取新token
@@ -53,11 +53,12 @@ app.get("/api/token", async (req, res) => {
     });
     const data = await resp.json();
 
-    // 4. 缓存2小时
+    // 4. 缓存一个半小时
     tokenCache[cacheKey] = data.tenant_access_token;
-    tokenCache[`expire_${appKey}`] = now + 7100 * 1000;
+    const expire_time = now + 5400 * 1000;
+    tokenCache[`expire_${appKey}`] = expire_time;
 
-    res.json({ code: 0, token: data.tenant_access_token });
+    res.json({ code: 0, token: data.tenant_access_token, expire_time: expire_time});
   } catch (err) {
     res.json({ code: -1, msg: "获取失败", error: err.message });
   }
