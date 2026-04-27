@@ -170,7 +170,7 @@ app.post("/activate", async (req, res) => {
     return res.json({
       code: 0,
       msg: "激活成功",
-      data: { recordId: recordId, code: code, macID: macID, status: "已激活" }
+      data: { recordId: recordId, code: code, macID: macID, status: "已激活", updateTime: Date.now()}
     });
 
   } catch (err) {
