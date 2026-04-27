@@ -231,7 +231,8 @@ app.post("/getMacId", async (req, res) => {
     return res.json({
       code: 0,
       msg: "查询成功",
-      macID: macID
+      macID: macID,
+      updateTime: Date.now()
     });
 
   } catch (err) {
