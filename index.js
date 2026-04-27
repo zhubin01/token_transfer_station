@@ -170,7 +170,7 @@ app.post("/activate", async (req, res) => {
     return res.json({
       code: 0,
       msg: "激活成功",
-      data: { recordId: recordId, code: code, macID: macID, status: "已激活", updateTime: Date.now()}
+      data: { recordId: recordId, code: code, status: "已激活", updateTime: Date.now()}
     });
 
   } catch (err) {
@@ -224,7 +224,7 @@ app.post("/getMacId", async (req, res) => {
     }
 
     // 获取macID
-    const macID = records[0].fields.macID; // 替换为你的macID字段ID
+    const macID = records[0].fields.macID[0].text; // 替换为你的macID字段ID
     console.log(`[${new Date().toLocaleString()}] [查询macID] 成功：校验码【${code}】对应设备【${macID}】`);
 
     // 成功返回
