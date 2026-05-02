@@ -1,10 +1,25 @@
 // 加载环境变量（必须第一行）
 require("dotenv").config();
 const express = require('express');
+const fetch = require('node-fetch');
 const app = express();
 
-// 解析JSON请求体（激活接口用）
-app.use(express.json());
+// 基础中间件
+app.use(express.json({ limit: '10kb' }));
+app.use(express.urlencoded({ extended: true }));
+
+// 全局长连接兜底优化（代码层面搞定，无需服务器配置）
+const AGENT_OPTIONS = {
+  keepAlive: true,
+  keepAliveMsecs: 60000,
+  timeout: 5000
+};
+const http = require('http');
+const https = require('https');
+http.globalAgent.keepAlive = true;
+https.globalAgent.keepAlive = true;
+http.globalAgent.keepAliveMsecs = 60000;
+https.globalAgent.keepAliveMsecs = 60000;
 
 // 跨域（快捷指令必备，支持GET+POST）
 app.use((req, res, next) => {
@@ -71,6 +86,40 @@ async function getToken(appKey) {
   console.log(`[${new Date().toLocaleString()}] [${appKey}] 从飞书接口获取Token | 缓存计数: ${stats.fromCache} | 接口计数: ${stats.fromApi}`);
   return token;
 }
+
+// ====================新增记录中转核心接口==============
+app.post('/api/add-record', async (req, res) => {
+  try {
+    const { pt_token, app_token, table_id, fields } = req.body;
+
+    if (!pt_token || !app_token || !table_id || !fields) {
+      return res.status(400).json({ code: -1, msg: '缺少参数：pt_token / app_token / table_id / fields' });
+    }
+
+    const apiUrl = `https://base-api.larksuite.com/open-apis/bitable/v1/apps/${app_token}/tables/${table_id}/records`;
+
+    const response = await fetch(apiUrl, {
+      method: 'POST',
+      timeout: 10000,
+      headers: {
+        'Authorization': `Bearer ${pt_token}`,
+        'Content-Type': 'application/json',
+        'Accept-Encoding': 'gzip, deflate'
+      },
+      body: JSON.stringify({ fields })
+    });
+
+    const result = await response.json();
+    res.json(result);
+
+  } catch (err) {
+    res.status(500).json({
+      code: -2,
+      msg: '中转请求失败',
+      error: err.message
+    });
+  }
+});
 
 // ===================== 原有接口：获取飞书Token =====================
 app.get("/api/token", async (req, res) => {
